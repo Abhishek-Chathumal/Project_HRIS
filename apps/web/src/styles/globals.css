@@ -688,3 +688,151 @@ h6 {
     opacity: 0.5;
   }
 }
+
+/* ═══════════════════════════════════════════ */
+/* WCAG 2.1 AA — Accessibility               */
+/* ═══════════════════════════════════════════ */
+
+/* ── Focus Visible (2.4.7) ───────────────── */
+:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.15);
+}
+
+/* Remove focus ring for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* ── Skip to Content (2.4.1) ─────────────── */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: 10000;
+  padding: var(--space-3) var(--space-6);
+  background: var(--accent-primary);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* ── Screen Reader Only ──────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ── Reduced Motion (2.3.3) ──────────────── */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── High Contrast Mode ──────────────────── */
+@media (prefers-contrast: high) {
+  :root {
+    --border-primary: #000;
+    --border-secondary: #333;
+    --text-secondary: #111;
+    --text-tertiary: #333;
+  }
+
+  .badge {
+    border: 1px solid currentColor;
+  }
+
+  .btn {
+    border-width: 2px;
+    font-weight: 600;
+  }
+
+  .card {
+    border-width: 2px;
+  }
+
+  .input {
+    border-width: 2px;
+  }
+}
+
+/* ── Minimum Touch Target (2.5.5) ────────── */
+@media (pointer: coarse) {
+
+  .btn,
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ── Visible Labels & Text Spacing (1.4.12) ─ */
+.label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+/* ── Selection Contrast ──────────────────── */
+::selection {
+  background: var(--accent-primary);
+  color: #fff;
+}
