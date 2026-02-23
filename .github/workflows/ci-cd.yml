@@ -130,7 +130,8 @@ jobs:
         name: Deploy to Staging
         runs-on: ubuntu-latest
         needs: build
-        environment: staging
+        environment:
+            name: staging
         steps:
             - uses: actions/checkout@v4
             - uses: azure/setup-kubectl@v4
@@ -145,7 +146,8 @@ jobs:
         name: Deploy to Production
         runs-on: ubuntu-latest
         needs: deploy-staging
-        environment: production
+        environment:
+            name: production
         steps:
             - uses: actions/checkout@v4
             - uses: azure/setup-kubectl@v4
