@@ -2,97 +2,29 @@
 
 import { useState } from 'react';
 import { toast } from '@/components/toast';
-import { createLogger } from '@/lib/logger';
-import styles from './settings.module.css';
-
-const log = createLogger('SettingsPage');
-
-interface LdapFormState {
-  enabled: boolean;
-  url: string;
-  bindDN: string;
-  bindPassword: string;
-  searchBase: string;
-  searchFilter: string;
-  usernameAttribute: string;
-  emailAttribute: string;
-  firstNameAttribute: string;
-  lastNameAttribute: string;
-  groupSearchBase: string;
-  groupSearchFilter: string;
-  groupMemberAttribute: string;
-  tlsEnabled: boolean;
-  tlsRejectUnauthorized: boolean;
-  connectionTimeout: number;
-  roleMapping: string;
-}
-
-const defaultState: LdapFormState = {
-  enabled: false,
-  url: 'ldap://ldap.example.com:389',
-  bindDN: 'cn=admin,dc=example,dc=com',
-  bindPassword: '',
-  searchBase: 'ou=users,dc=example,dc=com',
-  searchFilter: '(sAMAccountName={{username}})',
-  usernameAttribute: 'sAMAccountName',
-  emailAttribute: 'mail',
-  firstNameAttribute: 'givenName',
-  lastNameAttribute: 'sn',
-  groupSearchBase: 'ou=groups,dc=example,dc=com',
-  groupSearchFilter: '(member={{dn}})',
-  groupMemberAttribute: 'cn',
-  tlsEnabled: false,
-  tlsRejectUnauthorized: true,
-  connectionTimeout: 5000,
-  roleMapping: '{"Domain Admins": "admin", "HR": "hr_manager", "Employees": "employee"}',
-};
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState('ldap');
-  const [ldap, setLdap] = useState<LdapFormState>(defaultState);
-  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done'>('idle');
-  const [syncCount, setSyncCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'security' | 'appearance'>('general');
 
-  const updateLdap = (key: keyof LdapFormState, value: string | boolean | number) =>
-    setLdap((prev) => ({ ...prev, [key]: value }));
+  const [general, setGeneral] = useState({
+    companyName: 'Acme Corporation', timezone: 'Asia/Colombo', dateFormat: 'MM/DD/YYYY',
+    currency: 'USD', language: 'en', fiscalYearStart: '01',
+  });
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true, leaveApprovals: true, payslipReady: true,
+    systemAlerts: true, weeklyDigest: false, marketingEmails: false,
+  });
+  const [security, setSecurity] = useState({
+    twoFactorEnabled: false, sessionTimeout: '30', passwordExpiry: '90', ipWhitelist: '',
+  });
 
-  const handleTestConnection = () => {
-    setTestStatus('testing');
-    log.info('TestConnection', 'Testing LDAP connection', { url: ldap.url });
-    toast.info('Testing...', 'Attempting LDAP connection...');
-    setTimeout(() => {
-      const success = !ldap.url.includes('example');
-      setTestStatus(success ? 'success' : 'error');
-      if (success) {
-        toast.success('Connection OK', 'LDAP server responded successfully.');
-      } else {
-        toast.error('Connection Failed', 'Check URL and credentials.');
-      }
-      log.info('TestResult', success ? 'Connection successful' : 'Connection failed', {
-        url: ldap.url,
-      });
-    }, 2000);
-  };
+  const handleSave = () => toast.success('Settings Saved', 'Your preferences have been updated.');
 
-  const handleSync = () => {
-    setSyncStatus('syncing');
-    log.info('SyncDirectory', 'Starting LDAP directory sync');
-    toast.info('Syncing...', 'Synchronizing directory users...');
-    setTimeout(() => {
-      setSyncCount(42);
-      setSyncStatus('done');
-      log.info('SyncComplete', '42 users synced');
-      toast.success('Sync Complete', '42 users synchronized from directory.');
-    }, 3000);
-  };
-
-  const sections = [
-    { key: 'ldap', label: 'LDAP / Active Directory', icon: '🔗' },
-    { key: 'general', label: 'General Settings', icon: '⚙️' },
-    { key: 'security', label: 'Security', icon: '🔒' },
-    { key: 'email', label: 'Email & SMTP', icon: '📧' },
-    { key: 'integrations', label: 'Integrations', icon: '🔌' },
+  const tabs = [
+    { id: 'general' as const, label: 'General', icon: '⚙️' },
+    { id: 'notifications' as const, label: 'Notifications', icon: '🔔' },
+    { id: 'security' as const, label: 'Security', icon: '🔒' },
+    { id: 'appearance' as const, label: 'Appearance', icon: '🎨' },
   ];
 
   return (
@@ -100,333 +32,125 @@ export default function SettingsPage() {
       <div className="page-header">
         <div>
           <h1>Settings</h1>
-          <p>System configuration and integrations</p>
+          <p>Configure your organization and personal preferences</p>
         </div>
+        <button className="btn btn-primary" onClick={handleSave}>Save Changes</button>
       </div>
 
-      <div className={styles.settingsLayout}>
-        {/* Sidebar */}
-        <nav className={styles.settingsNav}>
-          {sections.map((section) => (
-            <button
-              key={section.key}
-              className={`${styles.navItem} ${activeSection === section.key ? styles.navItemActive : ''}`}
-              onClick={() => setActiveSection(section.key)}
-            >
-              <span>{section.icon}</span>
-              <span>{section.label}</span>
+      <div style={{ display: 'flex', gap: 'var(--space-6)' }}>
+        {/* Tab sidebar */}
+        <div className="card" style={{ width: 220, flexShrink: 0, padding: 'var(--space-3)' }}>
+          {tabs.map(t => (
+            <button key={t.id} className={`btn btn-ghost`} onClick={() => setActiveTab(t.id)}
+              style={{ width: '100%', justifyContent: 'flex-start', fontWeight: activeTab === t.id ? 600 : 400, background: activeTab === t.id ? 'var(--bg-secondary)' : 'transparent' }}>
+              <span>{t.icon}</span> {t.label}
             </button>
           ))}
-        </nav>
+        </div>
 
         {/* Content */}
-        <div className={styles.settingsContent}>
-          {activeSection === 'ldap' && (
+        <div className="card" style={{ flex: 1, padding: 'var(--space-6)' }}>
+          {activeTab === 'general' && (
             <>
-              {/* LDAP Enable Toggle */}
-              <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                <div
-                  className="card-body"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <div>
-                    <h3>LDAP / Active Directory Integration</h3>
-                    <p className="text-sm text-secondary" style={{ marginTop: 'var(--space-1)' }}>
-                      Authenticate users against your LDAP or Active Directory server
-                    </p>
+              <h3 style={{ marginBottom: 'var(--space-5)' }}>General Settings</h3>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-5)' }}>
+                {[
+                  { label: 'Company Name', key: 'companyName' as const, type: 'text' },
+                  { label: 'Timezone', key: 'timezone' as const, type: 'select', options: ['Asia/Colombo', 'UTC', 'America/New_York', 'Europe/London'] },
+                  { label: 'Date Format', key: 'dateFormat' as const, type: 'select', options: ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'] },
+                  { label: 'Currency', key: 'currency' as const, type: 'select', options: ['USD', 'LKR', 'EUR', 'GBP'] },
+                  { label: 'Language', key: 'language' as const, type: 'select', options: ['en', 'si', 'ta'] },
+                  { label: 'Fiscal Year Start', key: 'fiscalYearStart' as const, type: 'select', options: [{ v: '01', l: 'January' }, { v: '04', l: 'April' }, { v: '07', l: 'July' }] },
+                ].map(f => (
+                  <div key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                    <label className="label">{f.label}</label>
+                    {f.type === 'text' ? (
+                      <input className="input" value={general[f.key]} onChange={(e) => setGeneral({ ...general, [f.key]: e.target.value })} />
+                    ) : (
+                      <select className="input" value={general[f.key]} onChange={(e) => setGeneral({ ...general, [f.key]: e.target.value })}>
+                        {(f.options as (string | { v: string; l: string })[])?.map(o => typeof o === 'string' ? <option key={o} value={o}>{o}</option> : <option key={o.v} value={o.v}>{o.l}</option>)}
+                      </select>
+                    )}
                   </div>
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={ldap.enabled}
-                      onChange={(e) => updateLdap('enabled', e.target.checked)}
-                    />
-                    <span className={styles.toggleSlider} />
-                  </label>
-                </div>
+                ))}
               </div>
-
-              {ldap.enabled && (
-                <>
-                  {/* Connection Settings */}
-                  <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                    <div className="card-header">
-                      <h4>Connection Settings</h4>
-                    </div>
-                    <div className="card-body">
-                      <div className={styles.formGrid}>
-                        <div className={styles.formField}>
-                          <label className="label">LDAP Server URL</label>
-                          <input
-                            className="input"
-                            value={ldap.url}
-                            placeholder="ldap://ldap.example.com:389"
-                            onChange={(e) => updateLdap('url', e.target.value)}
-                          />
-                          <span className="text-xs text-tertiary">
-                            Use ldaps:// for SSL connections
-                          </span>
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Connection Timeout (ms)</label>
-                          <input
-                            type="number"
-                            className="input"
-                            value={ldap.connectionTimeout}
-                            onChange={(e) =>
-                              updateLdap('connectionTimeout', parseInt(e.target.value))
-                            }
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Bind DN</label>
-                          <input
-                            className="input"
-                            value={ldap.bindDN}
-                            placeholder="cn=admin,dc=example,dc=com"
-                            onChange={(e) => updateLdap('bindDN', e.target.value)}
-                          />
-                          <span className="text-xs text-tertiary">
-                            Service account Distinguished Name
-                          </span>
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Bind Password</label>
-                          <input
-                            type="password"
-                            className="input"
-                            value={ldap.bindPassword}
-                            placeholder="••••••••"
-                            onChange={(e) => updateLdap('bindPassword', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 'var(--space-4)',
-                          marginTop: 'var(--space-4)',
-                        }}
-                      >
-                        <label className={styles.checkboxLabel}>
-                          <input
-                            type="checkbox"
-                            checked={ldap.tlsEnabled}
-                            onChange={(e) => updateLdap('tlsEnabled', e.target.checked)}
-                          />
-                          <span>Enable TLS/STARTTLS</span>
-                        </label>
-                        <label className={styles.checkboxLabel}>
-                          <input
-                            type="checkbox"
-                            checked={ldap.tlsRejectUnauthorized}
-                            onChange={(e) => updateLdap('tlsRejectUnauthorized', e.target.checked)}
-                          />
-                          <span>Reject unauthorized TLS certificates</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Search Settings */}
-                  <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                    <div className="card-header">
-                      <h4>User Search</h4>
-                    </div>
-                    <div className="card-body">
-                      <div className={styles.formGrid}>
-                        <div className={styles.formField}>
-                          <label className="label">Search Base DN</label>
-                          <input
-                            className="input"
-                            value={ldap.searchBase}
-                            onChange={(e) => updateLdap('searchBase', e.target.value)}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Search Filter</label>
-                          <input
-                            className="input font-mono"
-                            value={ldap.searchFilter}
-                            onChange={(e) => updateLdap('searchFilter', e.target.value)}
-                          />
-                          <span className="text-xs text-tertiary">
-                            Use {'{{username}}'} as placeholder
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Attribute Mapping */}
-                  <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                    <div className="card-header">
-                      <h4>Attribute Mapping</h4>
-                    </div>
-                    <div className="card-body">
-                      <div className={styles.formGrid}>
-                        <div className={styles.formField}>
-                          <label className="label">Username Attribute</label>
-                          <input
-                            className="input font-mono"
-                            value={ldap.usernameAttribute}
-                            onChange={(e) => updateLdap('usernameAttribute', e.target.value)}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Email Attribute</label>
-                          <input
-                            className="input font-mono"
-                            value={ldap.emailAttribute}
-                            onChange={(e) => updateLdap('emailAttribute', e.target.value)}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">First Name Attribute</label>
-                          <input
-                            className="input font-mono"
-                            value={ldap.firstNameAttribute}
-                            onChange={(e) => updateLdap('firstNameAttribute', e.target.value)}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Last Name Attribute</label>
-                          <input
-                            className="input font-mono"
-                            value={ldap.lastNameAttribute}
-                            onChange={(e) => updateLdap('lastNameAttribute', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Group Mapping */}
-                  <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                    <div className="card-header">
-                      <h4>Group & Role Mapping</h4>
-                    </div>
-                    <div className="card-body">
-                      <div className={styles.formGrid}>
-                        <div className={styles.formField}>
-                          <label className="label">Group Search Base</label>
-                          <input
-                            className="input"
-                            value={ldap.groupSearchBase}
-                            onChange={(e) => updateLdap('groupSearchBase', e.target.value)}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label className="label">Group Search Filter</label>
-                          <input
-                            className="input font-mono"
-                            value={ldap.groupSearchFilter}
-                            onChange={(e) => updateLdap('groupSearchFilter', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className={styles.formField} style={{ marginTop: 'var(--space-4)' }}>
-                        <label className="label">LDAP Group → HRIS Role Mapping (JSON)</label>
-                        <textarea
-                          className="input font-mono"
-                          rows={3}
-                          value={ldap.roleMapping}
-                          onChange={(e) => updateLdap('roleMapping', e.target.value)}
-                          style={{ resize: 'vertical' }}
-                        />
-                        <span className="text-xs text-tertiary">
-                          Map LDAP group names to HRIS roles: admin, hr_manager, manager, employee
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="card">
-                    <div
-                      className="card-body"
-                      style={{
-                        display: 'flex',
-                        gap: 'var(--space-3)',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <button
-                        className="btn btn-primary"
-                        onClick={handleTestConnection}
-                        disabled={testStatus === 'testing'}
-                      >
-                        {testStatus === 'testing' ? (
-                          <>
-                            <span className={styles.spinner} /> Testing...
-                          </>
-                        ) : (
-                          <>🔍 Test Connection</>
-                        )}
-                      </button>
-
-                      {testStatus === 'success' && (
-                        <span className="badge badge-success">✓ Connection successful</span>
-                      )}
-                      {testStatus === 'error' && (
-                        <span className="badge badge-danger">
-                          ✗ Connection failed — check URL and credentials
-                        </span>
-                      )}
-
-                      <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-3)' }}>
-                        <button
-                          className="btn btn-secondary"
-                          onClick={handleSync}
-                          disabled={syncStatus === 'syncing'}
-                        >
-                          {syncStatus === 'syncing' ? (
-                            <>
-                              <span className={styles.spinner} /> Syncing...
-                            </>
-                          ) : (
-                            <>🔄 Sync Directory</>
-                          )}
-                        </button>
-                        {syncStatus === 'done' && (
-                          <span className="badge badge-success">{syncCount} users synced</span>
-                        )}
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => {
-                            log.info('SaveConfig', 'Saving LDAP configuration');
-                            toast.success(
-                              'Configuration Saved',
-                              'LDAP settings have been saved successfully.',
-                            );
-                          }}
-                        >
-                          Save Configuration
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </>
           )}
 
-          {activeSection !== 'ldap' && (
-            <div className="card">
-              <div
-                className="card-body"
-                style={{ padding: 'var(--space-16)', textAlign: 'center' }}
-              >
-                <div style={{ fontSize: '2rem', marginBottom: 'var(--space-3)' }}>
-                  {sections.find((s) => s.key === activeSection)?.icon}
-                </div>
-                <h3>{sections.find((s) => s.key === activeSection)?.label}</h3>
-                <p className="text-sm text-secondary" style={{ marginTop: 'var(--space-2)' }}>
-                  This settings section is coming soon.
-                </p>
+          {activeTab === 'notifications' && (
+            <>
+              <h3 style={{ marginBottom: 'var(--space-5)' }}>Notification Preferences</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {[
+                  { label: 'Email Notifications', desc: 'Receive notifications via email', key: 'emailNotifications' as const },
+                  { label: 'Leave Approval Alerts', desc: 'Get notified when leave requests need approval', key: 'leaveApprovals' as const },
+                  { label: 'Payslip Ready', desc: 'Notify when new payslip is available', key: 'payslipReady' as const },
+                  { label: 'System Alerts', desc: 'Health and maintenance notifications', key: 'systemAlerts' as const },
+                  { label: 'Weekly Digest', desc: 'Weekly summary of HR activities', key: 'weeklyDigest' as const },
+                ].map(s => (
+                  <div key={s.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-secondary)' }}>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{s.label}</div>
+                      <div className="text-sm text-secondary">{s.desc}</div>
+                    </div>
+                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [s.key]: !notificationSettings[s.key] })}
+                      style={{ width: 48, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: notificationSettings[s.key] ? 'var(--accent-primary)' : 'var(--bg-tertiary)', position: 'relative', transition: 'background 0.2s' }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 10, background: '#fff', position: 'absolute', top: 2, left: notificationSettings[s.key] ? 26 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
+            </>
+          )}
+
+          {activeTab === 'security' && (
+            <>
+              <h3 style={{ marginBottom: 'var(--space-5)' }}>Security Settings</h3>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-5)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <label className="label">Session Timeout (minutes)</label>
+                  <input className="input" type="number" value={security.sessionTimeout} onChange={(e) => setSecurity({ ...security, sessionTimeout: e.target.value })} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <label className="label">Password Expiry (days)</label>
+                  <input className="input" type="number" value={security.passwordExpiry} onChange={(e) => setSecurity({ ...security, passwordExpiry: e.target.value })} />
+                </div>
+              </div>
+              <div style={{ marginTop: 'var(--space-5)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>Two-Factor Authentication</div>
+                  <div className="text-sm text-secondary">Add an extra layer of security</div>
+                </div>
+                <button onClick={() => setSecurity({ ...security, twoFactorEnabled: !security.twoFactorEnabled })}
+                  style={{ width: 48, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: security.twoFactorEnabled ? 'var(--accent-primary)' : 'var(--bg-tertiary)', position: 'relative', transition: 'background 0.2s' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 10, background: '#fff', position: 'absolute', top: 2, left: security.twoFactorEnabled ? 26 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'appearance' && (
+            <>
+              <h3 style={{ marginBottom: 'var(--space-5)' }}>Appearance</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div>
+                  <div style={{ fontWeight: 500, marginBottom: 'var(--space-3)' }}>Theme</div>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    {['Light', 'Dark', 'System'].map(t => (
+                      <button key={t} className="btn btn-secondary" style={{ padding: 'var(--space-3) var(--space-5)' }}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 500, marginBottom: 'var(--space-3)' }}>Accent Color</div>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    {['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'].map(c => (
+                      <button key={c} style={{ width: 36, height: 36, borderRadius: 'var(--radius-full)', background: c, border: '3px solid var(--bg-primary)', boxShadow: '0 0 0 1px var(--border-primary)', cursor: 'pointer' }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

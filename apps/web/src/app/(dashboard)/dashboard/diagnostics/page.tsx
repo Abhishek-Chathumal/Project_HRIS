@@ -1,368 +1,149 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { toast } from '@/components/toast';
-import { createLogger } from '@/lib/logger';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 
-const diagLog = createLogger('DiagnosticsPage');
-
-interface ServiceStatus {
-  name: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  responseTime: number;
-  uptime: string;
+interface SystemHealth {
+  status: string;
+  timestamp: string;
+  uptime: number;
+  version: string;
+  services: { service: string; status: string; responseTime: number; details?: Record<string, unknown> }[];
+  memory: { rss: number; heapUsed: number; heapTotal: number; external: number };
 }
 
-interface SystemMetric {
-  label: string;
-  value: number;
-  max: number;
-  unit: string;
-  color: string;
+function formatUptime(seconds: number) {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [d > 0 ? `${d}d` : '', h > 0 ? `${h}h` : '', `${m}m`, `${s}s`].filter(Boolean).join(' ');
 }
 
-const mockServices: ServiceStatus[] = [
-  { name: 'API Server', status: 'healthy', responseTime: 12, uptime: '99.98%' },
-  { name: 'PostgreSQL', status: 'healthy', responseTime: 3, uptime: '99.99%' },
-  { name: 'Redis Cache', status: 'healthy', responseTime: 1, uptime: '99.99%' },
-  { name: 'Elasticsearch', status: 'healthy', responseTime: 8, uptime: '99.95%' },
-  { name: 'MinIO Storage', status: 'healthy', responseTime: 15, uptime: '99.97%' },
-  { name: 'Mail Service', status: 'degraded', responseTime: 250, uptime: '98.50%' },
-];
-
-const mockMetrics: SystemMetric[] = [
-  { label: 'CPU Usage', value: 23, max: 100, unit: '%', color: '#3B82F6' },
-  { label: 'Memory (Heap)', value: 156, max: 512, unit: 'MB', color: '#10B981' },
-  { label: 'Memory (RSS)', value: 210, max: 1024, unit: 'MB', color: '#8B5CF6' },
-  { label: 'Disk Usage', value: 12, max: 100, unit: 'GB', color: '#F59E0B' },
-];
-
-const mockLogs = [
-  {
-    time: '05:12:01',
-    level: 'info',
-    message: 'Health check passed — all services operational',
-    service: 'health',
-  },
-  {
-    time: '05:11:45',
-    level: 'warn',
-    message: 'Mail service response time elevated (250ms)',
-    service: 'mail',
-  },
-  {
-    time: '05:10:30',
-    level: 'info',
-    message: 'Database connection pool: 8/20 active connections',
-    service: 'prisma',
-  },
-  { time: '05:09:15', level: 'info', message: 'Redis cache hit rate: 94.2%', service: 'redis' },
-  {
-    time: '05:08:00',
-    level: 'info',
-    message: 'Auto-cleanup: removed 23 expired sessions',
-    service: 'auth',
-  },
-  {
-    time: '05:05:30',
-    level: 'info',
-    message: 'Scheduled audit log rotation completed',
-    service: 'audit',
-  },
-  {
-    time: '05:00:00',
-    level: 'info',
-    message: 'System health check scheduled (every 5m)',
-    service: 'scheduler',
-  },
-  {
-    time: '04:55:20',
-    level: 'warn',
-    message: 'Slow query detected: employee search (420ms)',
-    service: 'prisma',
-  },
-  {
-    time: '04:50:00',
-    level: 'info',
-    message: 'Health check passed — all services operational',
-    service: 'health',
-  },
-];
-
-const statusColors: Record<string, string> = {
-  healthy: 'var(--success)',
-  degraded: 'var(--warning)',
-  unhealthy: 'var(--danger)',
-};
-
-const logLevelColors: Record<string, string> = {
-  info: 'var(--info)',
-  warn: 'var(--warning)',
-  error: 'var(--danger)',
-};
+const statusColor: Record<string, string> = { healthy: 'var(--success)', degraded: 'var(--warning)', unhealthy: 'var(--danger)' };
 
 export default function DiagnosticsPage() {
-  const [uptime, setUptime] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setUptime((u) => u + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatUptime = (seconds: number) => {
-    const d = Math.floor(seconds / 86400);
-    const h = Math.floor((seconds % 86400) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${d}d ${h}h ${m}m ${s}s`;
-  };
-
-  const overallStatus = mockServices.every((s) => s.status === 'healthy')
-    ? 'healthy'
-    : mockServices.some((s) => s.status === 'unhealthy')
-      ? 'unhealthy'
-      : 'degraded';
+  const { data: healthData, isLoading, refetch } = useQuery<{ data: SystemHealth }>({
+    queryKey: ['health'],
+    queryFn: () => api.get('/health'),
+    refetchInterval: 30000,
+  });
+  const health = healthData?.data;
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h1>System Diagnostics</h1>
-          <p>Real-time system health monitoring and self-diagnostics</p>
+          <p>Real-time system health and service monitoring</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              padding: 'var(--space-2) var(--space-4)',
-              background:
-                overallStatus === 'healthy' ? 'var(--success-light)' : 'var(--warning-light)',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              color: statusColors[overallStatus],
-            }}
-          >
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 'var(--radius-full)',
-                background: statusColors[overallStatus],
-                animation: 'pulse 2s infinite',
-              }}
-            />
-            {overallStatus === 'healthy' ? 'All Systems Operational' : 'Degraded Performance'}
-          </div>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              diagLog.info('RunDiagnostic', 'Running full system diagnostic');
-              toast.info(
-                'Diagnostic Started',
-                'Running full system health check across all services...',
-              );
-              setTimeout(
-                () => toast.success('Diagnostic Complete', 'All systems passed health checks.'),
-                2000,
-              );
-            }}
-          >
-            Run Full Diagnostic
-          </button>
-        </div>
+        <button className="btn btn-secondary" onClick={() => refetch()}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+          Refresh
+        </button>
       </div>
 
-      {/* Uptime + Metrics */}
-      <div className="grid grid-cols-4" style={{ marginBottom: 'var(--space-6)' }}>
-        <div
-          className="stat-card"
-          style={{
-            background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
-            color: '#fff',
-            border: 'none',
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: '0.75rem',
-                color: 'rgba(255,255,255,0.6)',
-                marginBottom: 'var(--space-2)',
-              }}
-            >
-              System Uptime
-            </div>
-            <div
-              className="stat-value"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem' }}
-            >
-              {formatUptime(345600 + uptime)}
-            </div>
-            <div
-              style={{
-                fontSize: '0.75rem',
-                color: 'rgba(255,255,255,0.5)',
-                marginTop: 'var(--space-1)',
-              }}
-            >
-              Since last restart
-            </div>
-          </div>
+      {isLoading ? (
+        <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-secondary)' }}>Checking system health...</div>
+      ) : !health ? (
+        <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>⚠️</div>
+          <h3>Unable to reach API</h3>
+          <p className="text-secondary">The backend server may be offline.</p>
         </div>
-        {mockMetrics.map((metric) => (
-          <div key={metric.label} className="stat-card">
-            <div style={{ width: '100%' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: 'var(--space-2)',
-                }}
-              >
-                <span className="text-sm text-secondary">{metric.label}</span>
-                <span className="font-mono text-sm" style={{ fontWeight: 600 }}>
-                  {metric.value}
-                  {metric.unit}
-                </span>
+      ) : (
+        <>
+          {/* Overall Status */}
+          <div className="grid grid-cols-4" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="stat-card">
+              <div className="stat-icon" style={{ background: `${statusColor[health.status]}20`, color: statusColor[health.status] }}>
+                <div style={{ width: 20, height: 20, borderRadius: 'var(--radius-full)', background: statusColor[health.status] }} />
               </div>
-              <div
-                style={{
-                  height: 8,
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: 'var(--radius-full)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${(metric.value / metric.max) * 100}%`,
-                    background: metric.color,
-                    borderRadius: 'var(--radius-full)',
-                    transition: 'width 0.5s ease',
-                  }}
-                />
+              <div>
+                <div className="stat-value" style={{ textTransform: 'capitalize' }}>{health.status}</div>
+                <div className="stat-label">System Status</div>
               </div>
-              <div className="text-xs text-tertiary" style={{ marginTop: 'var(--space-1)' }}>
-                of {metric.max}
-                {metric.unit}
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon" style={{ background: 'var(--accent-primary-light)', color: 'var(--accent-primary)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              </div>
+              <div>
+                <div className="stat-value">{formatUptime(health.uptime)}</div>
+                <div className="stat-label">Uptime</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon" style={{ background: 'var(--info-light)', color: 'var(--info)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+              </div>
+              <div>
+                <div className="stat-value">{health.memory.heapUsed} MB</div>
+                <div className="stat-label">Memory (Heap Used)</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+              </div>
+              <div>
+                <div className="stat-value">v{health.version}</div>
+                <div className="stat-label">API Version</div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Services + Logs */}
-      <div className="grid grid-cols-2">
-        {/* Service Status */}
-        <div className="card">
-          <div className="card-header">
-            <h3>Service Status</h3>
-            <span className="text-xs text-tertiary">Updated 30s ago</span>
-          </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            {mockServices.map((service) => (
-              <div
-                key={service.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 'var(--space-3) var(--space-5)',
-                  borderBottom: '1px solid var(--border-secondary)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                  <div
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 'var(--radius-full)',
-                      background: statusColors[service.status],
-                    }}
-                  />
-                  <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{service.name}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                  <span className="font-mono text-xs text-tertiary">{service.responseTime}ms</span>
-                  <span className="text-xs text-secondary">{service.uptime}</span>
-                  <span
-                    className={`badge ${service.status === 'healthy' ? 'badge-success' : service.status === 'degraded' ? 'badge-warning' : 'badge-danger'}`}
-                  >
-                    {service.status}
+          {/* Services */}
+          <div className="grid grid-cols-2" style={{ marginBottom: 'var(--space-6)' }}>
+            {health.services.map(svc => (
+              <div key={svc.service} className="card" style={{ padding: 'var(--space-5)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: statusColor[svc.status] }} />
+                    <h3 style={{ textTransform: 'capitalize' }}>{svc.service}</h3>
+                  </div>
+                  <span className={`badge ${svc.status === 'healthy' ? 'badge-success' : svc.status === 'degraded' ? 'badge-warning' : 'badge-danger'}`}>
+                    {svc.status}
                   </span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* System Logs */}
-        <div className="card">
-          <div className="card-header">
-            <h3>Recent Logs</h3>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                diagLog.info('ViewAllLogs', 'Viewing full system log');
-                toast.info('System Logs', 'Opening full log viewer.');
-              }}
-            >
-              View all
-            </button>
-          </div>
-          <div className="card-body" style={{ padding: 0, maxHeight: 400, overflowY: 'auto' }}>
-            {mockLogs.map((entry, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 'var(--space-3)',
-                  padding: 'var(--space-3) var(--space-5)',
-                  borderBottom: '1px solid var(--border-secondary)',
-                  fontSize: '0.8125rem',
-                }}
-              >
-                <span
-                  className="font-mono text-xs text-tertiary"
-                  style={{ flexShrink: 0, paddingTop: 2 }}
-                >
-                  {entry.time}
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    padding: '1px 6px',
-                    borderRadius: 'var(--radius-sm)',
-                    background:
-                      entry.level === 'warn'
-                        ? 'var(--warning-light)'
-                        : entry.level === 'error'
-                          ? 'var(--danger-light)'
-                          : 'var(--info-light)',
-                    color: logLevelColors[entry.level],
-                    flexShrink: 0,
-                  }}
-                >
-                  {entry.level}
-                </span>
-                <div style={{ flex: 1 }}>
-                  <span>{entry.message}</span>
+                <div style={{ display: 'flex', gap: 'var(--space-6)' }}>
+                  <div>
+                    <div className="text-xs text-tertiary">Response Time</div>
+                    <div className="font-mono" style={{ fontWeight: 600 }}>{svc.responseTime}ms</div>
+                  </div>
                 </div>
-                <span className="text-xs text-tertiary" style={{ flexShrink: 0 }}>
-                  {entry.service}
-                </span>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+
+          {/* Memory Chart */}
+          <div className="card" style={{ padding: 'var(--space-5)' }}>
+            <h3 style={{ marginBottom: 'var(--space-4)' }}>Memory Usage</h3>
+            <div style={{ display: 'flex', gap: 'var(--space-6)' }}>
+              {[
+                { label: 'RSS', value: health.memory.rss, max: 512, color: 'var(--accent-primary)' },
+                { label: 'Heap Used', value: health.memory.heapUsed, max: health.memory.heapTotal, color: 'var(--success)' },
+                { label: 'Heap Total', value: health.memory.heapTotal, max: 512, color: 'var(--warning)' },
+                { label: 'External', value: health.memory.external, max: 64, color: 'var(--info)' },
+              ].map(m => (
+                <div key={m.label} style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                    <span className="text-sm">{m.label}</span>
+                    <span className="font-mono text-sm">{m.value} MB</span>
+                  </div>
+                  <div style={{ height: 8, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, (m.value / m.max) * 100)}%`, background: m.color, borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
+            <span className="text-xs text-tertiary">Last checked: {new Date(health.timestamp).toLocaleString()}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
