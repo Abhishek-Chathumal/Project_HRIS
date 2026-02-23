@@ -1,0 +1,119 @@
+# ============================================
+# Prometheus Alert Rules — Project HRIS
+# ============================================
+
+groups:
+  - name: hris-api
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on HRIS API"
+          description: "Error rate is {{ $value | humanizePercentage }} (>5% for 5 minutes)"
+
+      # High response latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "P95 latency is {{ $value }}s (>2s for 5 minutes)"
+
+      # Pod restart
+      - alert: PodRestarting
+        expr: increase(kube_pod_container_status_restarts_total{namespace="hris"}[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} is restarting frequently"
+          description: "{{ $value }} restarts in the last hour"
+
+      # High CPU usage
+      - alert: HighCpuUsage
+        expr: rate(container_cpu_usage_seconds_total{namespace="hris"}[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.pod }}"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{namespace="hris"} / container_spec_memory_limit_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.pod }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+  - name: hris-database
+    rules:
+      # Database connection pool exhaustion
+      - alert: DbConnectionPoolExhausted
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL connection pool nearing exhaustion"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+
+      # Slow queries
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_mean_exec_time_seconds[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is {{ $value }}s"
+
+  - name: hris-redis
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis instance is down"
+
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "{{ $value | humanizePercentage }} of max memory"
+
+  - name: hris-security
+    rules:
+      # Failed login spike
+      - alert: FailedLoginSpike
+        expr: rate(hris_auth_failed_logins_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "{{ $value }} failed logins per second — possible brute force attack"
+
+      # LDAP connection failures
+      - alert: LdapConnectionFailure
+        expr: hris_ldap_connection_errors_total > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LDAP connection errors detected"
+          description: "{{ $value }} LDAP connection errors in the last 5 minutes"

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '../styles/globals.css';
+import { QueryProvider } from '@/lib/query-provider';
 
 export const metadata: Metadata = {
     title: {
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
         'Industrial-level Human Resource Information System with comprehensive HR management, policy engine, ML analytics, and self-diagnostic capabilities.',
     keywords: ['HRIS', 'HR', 'Human Resources', 'Employee Management', 'Payroll', 'Attendance'],
     authors: [{ name: 'Project HRIS' }],
-    robots: 'noindex, nofollow', // Internal enterprise app
+    robots: 'noindex, nofollow',
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
                     rel="stylesheet"
                 />
             </head>
-            <body>{children}</body>
+            <body>
+                <QueryProvider>{children}</QueryProvider>
+            </body>
         </html>
     );
 }

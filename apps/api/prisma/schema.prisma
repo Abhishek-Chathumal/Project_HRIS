@@ -22,6 +22,8 @@ model User {
   isEmailVerified Boolean @default(false) @map("is_email_verified")
   mfaEnabled    Boolean   @default(false) @map("mfa_enabled")
   mfaSecret     String?   @map("mfa_secret") @db.VarChar(255)
+  authProvider  String    @default("local") @map("auth_provider") @db.VarChar(20) // local, ldap, saml, oauth
+  ldapDN        String?   @map("ldap_dn") @db.VarChar(500)
   lastLoginAt   DateTime? @map("last_login_at")
   lastLoginIp   String?   @map("last_login_ip") @db.VarChar(45)
   failedAttempts Int      @default(0) @map("failed_attempts")
@@ -31,7 +33,7 @@ model User {
 
   // Relations
   employee      Employee?
-  roles         UserRole[]
+  userRoles     UserRole[]
   sessions      Session[]
   auditLogs     AuditLog[]
   notifications UserNotification[]

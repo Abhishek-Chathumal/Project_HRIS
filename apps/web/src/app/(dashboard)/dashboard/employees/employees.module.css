@@ -1,0 +1,173 @@
+.filtersBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.searchBox {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.searchBox svg {
+    position: absolute;
+    left: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+}
+
+.searchBox .input {
+    padding-left: var(--space-8);
+}
+
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.filterGroup select {
+    width: 160px;
+}
+
+.viewToggle {
+    display: flex;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.viewBtn {
+    padding: var(--space-2);
+    background: var(--bg-primary);
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.viewBtn:not(:last-child) {
+    border-right: 1px solid var(--border-primary);
+}
+
+.viewBtn.active {
+    background: var(--accent-primary);
+    color: var(--accent-primary-text);
+}
+
+.viewBtn:hover:not(.active) {
+    background: var(--bg-tertiary);
+}
+
+.summaryRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.summaryBadges {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* Grid View */
+.gridView {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.employeeCard {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: all var(--transition-base);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.employeeCard:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+}
+
+.cardTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.cardAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.cardName {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--space-1);
+}
+
+.cardPosition {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+}
+
+.cardMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-secondary);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .filtersBar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .searchBox {
+        max-width: 100%;
+    }
+
+    .filterGroup {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 640px) {
+    .filterGroup select {
+        width: 100%;
+    }
+
+    .summaryRow {
+        flex-direction: column;
+        gap: var(--space-2);
+        align-items: flex-start;
+    }
+}
