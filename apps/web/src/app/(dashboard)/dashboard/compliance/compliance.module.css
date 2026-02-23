@@ -1,0 +1,30 @@
+.scoreCard {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-base);
+}
+
+.scoreCard:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.scoreRing {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scoreValue {
+    position: absolute;
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-feature-settings: 'tnum';
+}
