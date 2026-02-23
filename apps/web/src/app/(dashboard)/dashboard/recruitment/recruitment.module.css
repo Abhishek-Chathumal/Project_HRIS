@@ -1,0 +1,106 @@
+.tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-primary);
+    margin-bottom: var(--space-4);
+    gap: var(--space-1);
+}
+
+.tab {
+    padding: var(--space-3) var(--space-4);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.activeTab {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+}
+
+/* Pipeline Kanban */
+.pipeline {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-3);
+    overflow-x: auto;
+    padding-bottom: var(--space-4);
+}
+
+.pipelineColumn {
+    min-width: 200px;
+}
+
+.columnHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.columnDot {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+}
+
+.columnTitle {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    flex: 1;
+}
+
+.columnCount {
+    background: var(--bg-tertiary);
+    padding: 1px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.columnCards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.applicantCard {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.applicantCard:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    border-color: var(--accent-primary);
+}
+
+.emptyColumn {
+    padding: var(--space-8) var(--space-3);
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    border: 2px dashed var(--border-secondary);
+    border-radius: var(--radius-md);
+}
+
+@media (max-width: 1024px) {
+    .pipeline {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
