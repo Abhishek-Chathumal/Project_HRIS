@@ -17,6 +17,10 @@ import { UsersModule } from './users/users.module';
 import { EmployeesModule } from './employees/employees.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { LeaveModule } from './leave/leave.module';
+import { PayrollModule } from './payroll/payroll.module';
+import { RecruitmentModule } from './recruitment/recruitment.module';
+import { PerformanceModule } from './performance/performance.module';
+import { TrainingModule } from './training/training.module';
 import { PolicyModule } from './policy/policy.module';
 import { AuditModule } from './audit/audit.module';
 import { HealthModule } from './health/health.module';
@@ -61,6 +65,10 @@ import { NotificationsModule } from './notifications/notifications.module';
     EmployeesModule,
     AttendanceModule,
     LeaveModule,
+    PayrollModule,
+    RecruitmentModule,
+    PerformanceModule,
+    TrainingModule,
     PolicyModule,
     AuditModule,
     HealthModule,
@@ -89,4 +97,4 @@ import { NotificationsModule } from './notifications/notifications.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
