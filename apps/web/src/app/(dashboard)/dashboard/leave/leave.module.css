@@ -1,0 +1,183 @@
+.tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-primary);
+    margin-bottom: var(--space-4);
+    gap: var(--space-1);
+}
+
+.tab {
+    padding: var(--space-3) var(--space-4);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.activeTab {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+}
+
+.tabBadge {
+    background: var(--danger);
+    color: #ffffff;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    line-height: 1.4;
+}
+
+/* Apply Form */
+.applyCard {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+    box-shadow: var(--shadow-sm);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+}
+
+.formField {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.formField textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Balance Cards */
+.balanceGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.balanceCard {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: all var(--transition-base);
+}
+
+.balanceCard:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.balanceHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.balanceDot {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.balanceType {
+    font-weight: 500;
+    flex: 1;
+}
+
+.balanceCode {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+}
+
+.balanceStats {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.balanceMain {
+    display: flex;
+    flex-direction: column;
+}
+
+.balanceValue {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    font-feature-settings: 'tnum';
+}
+
+.balanceLabel {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: var(--space-1);
+}
+
+.balanceBreakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.75rem;
+    text-align: right;
+}
+
+.balanceBar {
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    display: flex;
+    overflow: hidden;
+}
+
+.balanceBarFill,
+.balanceBarPending {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width var(--transition-base);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .formGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        overflow-x: auto;
+    }
+}
