@@ -1,0 +1,310 @@
+# ============================================
+# Kubernetes Deployment — Project HRIS
+# Namespace + Secrets + API + Web + Ingress
+# ============================================
+
+# ── Namespace ────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hris
+  labels:
+    app.kubernetes.io/name: project-hris
+    app.kubernetes.io/part-of: hris
+---
+# ── Secrets (reference — use sealed-secrets in prod) ──
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hris-secrets
+  namespace: hris
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://hris_admin:CHANGE_ME@hris-postgres:5432/hris_db?schema=public"
+  JWT_ACCESS_SECRET: "CHANGE_ME_32_CHARS_MINIMUM_ACCESS_KEY"
+  JWT_REFRESH_SECRET: "CHANGE_ME_32_CHARS_MINIMUM_REFRESH_KEY"
+  ENCRYPTION_MASTER_KEY: "CHANGE_ME_64_HEX_CHARS"
+  REDIS_PASSWORD: ""
+  LDAP_BIND_PASSWORD: "CHANGE_ME"
+---
+# ── ConfigMap ────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hris-config
+  namespace: hris
+data:
+  NODE_ENV: "production"
+  APP_NAME: "ProjectHRIS"
+  API_PORT: "3001"
+  LOG_LEVEL: "info"
+  REDIS_HOST: "hris-redis"
+  REDIS_PORT: "6379"
+  LDAP_ENABLED: "false"
+---
+# ── API Deployment ───────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hris-api
+  namespace: hris
+  labels:
+    app: hris-api
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hris-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: hris-api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        runAsNonRoot: true
+      containers:
+        - name: api
+          image: ghcr.io/abhishek-chathumal/hris-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: hris-config
+            - secretRef:
+                name: hris-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+---
+# ── API Service ──────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: hris-api
+  namespace: hris
+  labels:
+    app: hris-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  selector:
+    app: hris-api
+---
+# ── Web Deployment ───────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hris-web
+  namespace: hris
+  labels:
+    app: hris-web
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hris-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: hris-web
+        version: v1
+    spec:
+      terminationGracePeriodSeconds: 15
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+      containers:
+        - name: web
+          image: ghcr.io/abhishek-chathumal/hris-web:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://api.hris.example.com"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+# ── Web Service ──────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: hris-web
+  namespace: hris
+  labels:
+    app: hris-web
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: hris-web
+---
+# ── Ingress (NGINX) ─────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hris-ingress
+  namespace: hris
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+    - hosts:
+        - hris.example.com
+        - api.hris.example.com
+      secretName: hris-tls
+  rules:
+    - host: hris.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hris-web
+                port:
+                  number: 3000
+    - host: api.hris.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hris-api
+                port:
+                  number: 3001
+---
+# ── HPA (Auto-scaling) ──────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hris-api-hpa
+  namespace: hris
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hris-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# ── Network Policy ───────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hris-network-policy
+  namespace: hris
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 3000
+        - port: 3001
+    - from:
+        - podSelector: {}
+  egress:
+    - {}
